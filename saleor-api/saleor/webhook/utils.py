@@ -51,8 +51,8 @@ def get_filter_for_single_webhook_event(
     ).filter(event_type__in=event_types)
     return (
         Q(is_active=True)
-        & Q(Exists(apps.filter(id=OuterRef("app_id"))))
-        & Q(Exists(webhook_events.filter(webhook_id=OuterRef("id"))))
+          & Q(Exists(apps.filter(id=OuterRef("app_id"))))
+          & Q(Exists(webhook_events.filter(webhook_id=OuterRef("id"))))
     )
 
 

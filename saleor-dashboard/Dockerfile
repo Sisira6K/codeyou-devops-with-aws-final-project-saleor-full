@@ -35,6 +35,7 @@ ENV API_URL=${API_URL:-http://localhost:8000/graphql/} \
 
 #BUILD THE APPLICATION
 RUN npm run build
+
 #THE RUNNER STAGE
 #BASE IMAGE
 FROM nginx:stable-alpine as runner 

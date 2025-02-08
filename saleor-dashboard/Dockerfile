@@ -12,12 +12,12 @@ ENV CI=1
 #COMPATABILTY WITH OLDER NODE VERSIONS
 RUN npm ci --legacy-peer-deps 
 # COPY NECCESSARY DIRECTORIES AND DATA FILES
-COPY /nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/replace-env-vars.sh /docker-entrypoint.d/50-replace-env-vars.sh
-COPY static/assets assets
-COPY locales/locale locale
-COPY scripts scripts/
-COPY src src
+COPY static/assets/ assets/
+COPY locales/locale/ locale/
+COPY scripts/ scripts/
+COPY src/ src/
 COPY vite.config.js vite.config.js
 COPY tsconfig.json tsconfig.json
 COPY schema.graphql schema.graphql

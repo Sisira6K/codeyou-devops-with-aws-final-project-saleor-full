@@ -16,7 +16,7 @@ COPY /nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/replace-env-vars.sh /docker-entrypoint.d/50-replace-env-vars.sh
 COPY static/assets assets
 COPY locales/locale locale
-COPY scripts scripts
+COPY scripts scripts/
 COPY src src
 COPY vite.config.js vite.config.js
 COPY tsconfig.json tsconfig.json

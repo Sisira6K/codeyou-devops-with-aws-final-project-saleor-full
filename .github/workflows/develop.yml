@@ -72,15 +72,15 @@ jobs:
 
       - name: Health Check Saleor API
         run: |
-            curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
-            echo "Waiting for Saleor API..."
-            sleep 5
+            while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
+              echo "Waiting for Saleor API..."
+              sleep 5
             done
             echo "Saleor API is ready!"
 
       - name: Health Check Saleor Dashboard
         run: |
-          curl -s -o /dev/null -w "%{http_code}" http://localhost:9000 | grep -E "200|404"; do
+          while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000 | grep -E "200|404"; do
             echo "Waiting for Saleor Dashboard..."
             sleep 5
           done

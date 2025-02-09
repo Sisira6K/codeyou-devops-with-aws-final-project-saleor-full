@@ -1,10 +1,10 @@
 #BUILDER STAGE
 #BASE IMAGE
-FROM node:18-alpine as builder  
+FROM node:18-alpine AS builder  
 #INSTALL BASH FOR COMPATIBILITY
 RUN apk add --no-cache bash
 #SET WORKDIR
-WORKDIR /app/saleor-dashboard
+WORKDIR /app
 #MANAGE DEPENDENCIES #COPY PACKAGE FILES AND DEPENDENCIES
 COPY package.json package-lock.json ./ 
 #AVOID PROMPTS
@@ -14,16 +14,17 @@ RUN npm ci --legacy-peer-deps
 # COPY NECCESSARY DIRECTORIES AND DATA FILES
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/replace-env-vars.sh /docker-entrypoint.d/50-replace-env-vars.sh
-COPY static/assets/ assets/
-COPY locales/locale/ locale/
-COPY scripts/ scripts/
-COPY src/ src/
-COPY vite.config.js vite.config.js
-COPY tsconfig.json tsconfig.json
-COPY schema.graphql schema.graphql
-COPY types/*.d.ts .
-COPY introspections/*.json .
-COPY feature-flags/.featureFlags/ .featureFlags/
+COPY assets/ /app/assets/
+COPY locale/ /app/locale/
+COPY scripts/ /app/scripts/
+COPY src/ /app/src/
+COPY vite.config.js /app/vite.config.js
+COPY tsconfig.json /app/tsconfig.json
+COPY schema.graphql /app/schema.graphql
+COPY *.d.ts /app/types/
+COPY introspection.json /app/introspection.json
+COPY .featureFlags/ /app/.featureFlags/
+
 #CONFIGURE ENVIRONMENT VARIABLES
 ARG API_URL
 ARG APP_MOUNT_URI
@@ -46,7 +47,7 @@ RUN npm run build
 
 #THE RUNNER STAGE
 #BASE IMAGE
-FROM nginx:stable-alpine as runner 
+FROM nginx:stable-alpine AS runner 
 #SET WORKDIR
 WORKDIR /app/saleor-dashboard
 
@@ -58,5 +59,3 @@ COPY ./nginx/replace-env-vars.sh /docker-entrypoint.d/50-replace-env-vars.sh
 EXPOSE 80
 #SET THE ENTRYPOINT
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
-
-

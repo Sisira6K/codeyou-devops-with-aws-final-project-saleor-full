@@ -5,19 +5,19 @@ RUN apt-get update && apt-get install -y \
     #FOR TRANSLATION
     gettext \ 
     #LIBRALIES FOR PILLOW
-    libffi8\
-    libgdk-pixbuf2.0-0\
-    liblcms2-2\
-    libopenjp2-7\
-    libssl3\
-    libtiff6\
-    libwebp7\
-    shared-mime-info\
-    mime-support\
+    libffi8 \
+    libgdk-pixbuf2.0-0 \
+    liblcms2-2 \
+    libopenjp2-7 \
+    libssl3 \
+    libtiff6 \
+    libwebp7 \
+    shared-mime-info \
+    mime-support \
     #LIBRALIES FOR POSTGRESQL
-    libpq5\
+    libpq5 \
     #CLEAN UP
-    && apt-get clean\ 
+    && apt-get clean \ 
     && rm -rf /var/lib/apt/lists/*
     
 # SET PYTHON DEPENDENCIES
@@ -31,12 +31,12 @@ RUN poetry install --no-root --no-interaction
 
 # CREATE A NON-ROOT USER
 RUN groupadd --system saleor && \
-useradd --system --create-home --gid saleor saleor &&\
+useradd --system --create-home --gid saleor saleor && \
 chown -R saleor:saleor /app
 
 USER saleor
 # COPY SOURCE CODE
-COPY . .
+COPY . /app/
 
 # CONFIGURE STATIC FILES
 ARG STATIC_URL
@@ -45,5 +45,4 @@ RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --
 # EXPOSE PORT
 EXPOSE 8000
 # ADD START COMMAND OR ENTRYPOINT
-CMD ["gunicorn", "--bind", ":8000", "--workers", "4", "--worker-class", \
-"saleor.asgi.gunicorn_worker.UvicornWorker", "saleor.asgi:application"]
+CMD ["gunicorn", "--bind", ":8000", "--workers", "4", "--worker-class", "saleor.asgi.gunicorn_worker.UvicornWorker", "saleor.asgi:application"]

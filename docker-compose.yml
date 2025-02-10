@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 services:
   api:
     image: saleor-api
@@ -10,15 +10,17 @@ services:
     depends_on:
       - db
       - redis
-      - jaeger-agent
+      - jaeger
     volumes:
       - saleor-media:/app/media
     environment:
-      - ALLOWED_HOSTS: localhost, api, dashboard
-      - DATABASE_URL: postgres://saleor:saleor@db:5432/saleor
-      - OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger-agent:4317
-      - REDIS_URL: redis://redis:6379/0
-      - STATIC_URL: /static/
+      ALLOWED_HOSTS: "localhost, api, dashboard"
+      DATABASE_URL: "postgresql://saleor:saleor@db:5432/saleor"
+      JAEGER_AGENT_HOST: "http://jaeger-agent:4317"
+      REDIS_URL: "redis://redis:6379/0"
+      DASHBOARD_URL: "http://localhost:9000"
+      #- STATIC_URL: "/static/"
+      #- OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -34,7 +36,7 @@ services:
     depends_on:
       - api
     environment:
-      - API_URI: http://api:8000/graphql/
+      API_URI: "http://api:8000/graphql/"
     networks:
       - saleor-backend-tier
     restart: unless-stopped
@@ -50,18 +52,18 @@ services:
       - "5432:5432"
     volumes:
       - saleor-db:/var/lib/postgresql/data
-      - replica_user.sql:/docker-entrypoint-initdb.d/replica_user.sql
+      - ./replica_user.sql:/docker-entrypoint-initdb.d/replica_user.sql
     environment:
-      - POSTGRES_DB=saleor
-      - POSTGRES_USER=saleor
-      - POSTGRES_PASSWORD=saleor
+      POSTGRES_DB: "saleor"
+      POSTGRES_USER: "saleor"
+      POSTGRES_PASSWORD: "saleor"
     networks:
       - saleor-backend-tier
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "saleor"]
       interval: 30s
-      timeout: 10ss
+      timeout: 10s
       retries: 3
       start_period: 30s
   redis:
@@ -85,8 +87,8 @@ services:
       - "6831:6831/udp"
     tmpfs:
       - /docker-imagelayers
-    depends_on:
-      - api
+    #depends_on:
+    #  - api
     networks:
       - saleor-backend-tier
     restart: unless-stopped
@@ -109,10 +111,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-  volumes:
-    saleor-media:
-    saleor-db:
-    saleor-redis:
+volumes:
+  saleor-media:
+  saleor-db:
+  saleor-redis:
 networks:
   saleor-backend-tier:
     driver: bridge

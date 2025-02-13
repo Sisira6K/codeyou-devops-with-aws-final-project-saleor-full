@@ -86,6 +86,7 @@ jobs:
         
       - name: Run Migrations
         run: |
+          cd saleor-api
           python manage.py migrate
         working-directory: saleor-api
 

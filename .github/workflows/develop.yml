@@ -11,6 +11,15 @@ env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_REPO: saleor
   DOCKERHUB_TAG: develop
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  SALEOR_SECRET_KEY: ${{ secrets.SALEOR_SECRET_KEY }}
+  DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+  DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+  DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+  ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+  REDIS_URL: ${{ secrets.REDIS_URL }}
+  JAEGER_AGENT_HOST: ${{ secrets.JAEGER_AGENT_HOST }}
+  DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
 
 jobs:
   check-and-lint:
@@ -38,7 +47,7 @@ jobs:
         run: ruff check . | tee ruff-report.txt
 
       - name: Dependency Vulnerability Scan (pip-audit)
-        run: pip-audit || true   | tee pip-audit-report.txt
+        run: pip-audit || true | tee pip-audit-report.txt
 
   build-and-deploy:
     name: Build and Deploy
@@ -69,10 +78,20 @@ jobs:
         run: |
           docker run -d -p 8000:8000 --name saleor-api-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
           docker run -d -p 9000:9000 --name saleor-dashboard-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
+      - name: Check running containers
+        run: |
+          docker ps
+      - name: Run Migrations
+        run: |
+          python manage.py migrate
+
+      - name: Populate Database
+        run: |
+          python manage.py populatedb --createsuperuser --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 
       - name: Health Check Saleor API
         run: |
-            while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
+            until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql/ | grep -qE "200|404"; do
               echo "Waiting for Saleor API..."
               sleep 5
             done
@@ -80,7 +99,7 @@ jobs:
 
       - name: Health Check Saleor Dashboard
         run: |
-            while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000 | grep -E "200|404"; do
+            until curl -s -o /dev/null -w "%{http_code}" http://localhost:9000 | grep -qE "200|404"; do
               echo "Waiting for Saleor Dashboard..."
               sleep 5
             done

@@ -84,6 +84,7 @@ jobs:
       - name: Run Migrations
         run: |
           python manage.py migrate
+        working-directory: saleor-api
 
       - name: Populate Database
         run: |

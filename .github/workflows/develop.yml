@@ -84,8 +84,13 @@ jobs:
         run: |
           docker ps
         
-      - name: Run Migrations and Populate Database
-        run: cd saleor-api && python manage.py migrate &&
+      - name: Run Migrations
+        run: |
+          python manage.py migrate
+        working-directory: saleor-api
+
+      - name: Populate Database
+        run: |
           python manage.py populatedb --createsuperuser --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 
       - name: Health Check Saleor API

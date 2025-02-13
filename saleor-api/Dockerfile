@@ -2,6 +2,9 @@
 FROM python:3.12
 # INSTALL SYSTEM DEPENDENCIES 
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    libpq-dev \
     #FOR TRANSLATION
     gettext \ 
     #LIBRALIES FOR PILLOW
@@ -31,14 +34,15 @@ RUN poetry install --no-root --no-interaction
 
 # CREATE A NON-ROOT USER
 RUN groupadd --system saleor && \
-useradd --system --create-home --gid saleor saleor && \
-chown -R saleor:saleor /app
+useradd -r -g saleor saleor && chown -R saleor:saleor /app/
 
 USER saleor
 # COPY SOURCE CODE
-COPY . /app/
+COPY . .
 
 # CONFIGURE STATIC FILES
+ENV ALLOWED_HOSTS="*"
+ENV DATABASE_URL="postgres://user:password@db:5432/saleor"
 ARG STATIC_URL
 ENV STATIC_URL=${STATIC_URL:-/static/}
 RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --no-input

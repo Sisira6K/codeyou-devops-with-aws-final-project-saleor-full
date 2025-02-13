@@ -36,8 +36,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd saleor-api
           python -m pip install --upgrade pip
           pip install flake8 ruff pip-audit
+
 
       - name: Linting (flake8)
         run: flake8  . --ignore=E501,W503 || true
@@ -81,6 +83,7 @@ jobs:
       - name: Check running containers
         run: |
           docker ps
+        
       - name: Run Migrations
         run: |
           python manage.py migrate

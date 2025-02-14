@@ -68,10 +68,11 @@ jobs:
       - name: Build and Tag Saleor API Docker Image
         run: |
           cd saleor-api
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}" ./saleor-api
+          docker build -t 
+          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}" ./saleor-api/Dockerfile .
       - name: Build and Tag Saleor Dashboard Docker Image
         run: |
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}" ./saleor-dashboard
+          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}" ./saleor-dashboard/Dockerfile .
       - name: Start Saleor API & Dashboard Containers
         run: |
           docker run -d -p 8000:8000 --name saleor-api "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
@@ -92,7 +93,7 @@ jobs:
             done
             echo "Saleor Dashboard is ready!"
       - name: Trivy Scan Saleor API
-        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api-app || true
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api || true
       - name: push Saleor API Docker Image
         run: |
           ddocker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"

@@ -12,6 +12,7 @@ env:
   DOCKER_IMAGE_DASHBOARD: ${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard
   DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+  DOCKERHUB_REPO: develop
   
 jobs:
   check-and-lint:
@@ -65,20 +66,20 @@ jobs:
       - name: Build and Tag Docker Image
         run: |
           cd saleor-api
-          docker build -t $DOCKER_IMAGE:develop .
-          docker push $DOCKER_IMAGE:develop
+          docker build -t $DOCKER_IMAGE:$DOCKERHUB_REPO .
+          docker push $DOCKER_IMAGE:DOCKERHUB_REPO
     
       - name: Pull the built Docker Images
         run: |
-          docker pull $DOCKER_IMAGE_API:develop
-          docker pull $DOCKER_IMAGE_DASHBOARD:develop
+          docker pull $DOCKER_IMAGE_API:DOCKERHUB_REPO
+          docker pull $DOCKER_IMAGE_DASHBOARD:DOKERHUB_REPO
   
       - name: Start Saleor API & Dashboard Containers
         run: |
           docker network create saleor-network
 
-          docker run -d --name saleor-api --network saleor-network -p 8000:8000 $DOCKER_IMAGE_API:develop
-          docker run -d --name saleor-dashboard --network saleor-network -p 9000:80 $DOCKER_IMAGE_DASHBOARD:develop
+          docker run -d --name saleor-api --network saleor-network -p 8000:8000 $DOCKER_IMAGE_API:$DOCKERHUB_REPO
+          docker run -d --name saleor-dashboard --network saleor-network -p 9000:80 $DOCKER_IMAGE_DASHBOARD:DOCKERHUB_REPO
 
           sleep 10 
       - name: Check Saleor API Health

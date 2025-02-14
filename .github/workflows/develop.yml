@@ -80,14 +80,7 @@ jobs:
         run: |
           docker run -d -p 8000:8000 --name saleor-api-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
           docker run -d -p 9000:9000 --name saleor-dashboard-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
-      - name: Check running containers
-        run: |
-          docker ps
-        
-      - name: Run Migrations and Populate Database
-        run: cd saleor-api && python manage.py migrate &&
-          python manage.py populatedb --createsuperuser --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
-
+      
       - name: Health Check Saleor API
         run: |
             until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql/ | grep -qE "200|404"; do

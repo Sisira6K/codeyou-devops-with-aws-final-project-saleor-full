@@ -68,7 +68,6 @@ jobs:
       - name: Build and Tag Saleor API Docker Image
         run: |
           cd saleor-api
-          docker build -t 
           docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}" ./saleor-api/Dockerfile .
       - name: Build and Tag Saleor Dashboard Docker Image
         run: |

@@ -63,13 +63,15 @@ jobs:
         run: |
           docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
         
-      # - name: Check Saleor API Health
-      #   run: |
-      #     while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
-      #       echo "Waiting for Saleor API..."
-      #       sleep 5
-      #     done
-      #     echo "Saleor API is ready!"
+      - name: Check Saleor API Health
+        run: |
+          docker run -d --name saleor-api -p 8000:8000 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
+          sleep 10  # Give it time to start
+          until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
+                echo "Waiting for Saleor API..."
+                sleep 5
+              done
+              echo "Saleor API is healthy!
   
       # - name: Check Saleor Dashboard Health
       #   run: |

@@ -68,10 +68,11 @@ jobs:
       - name: Build and Tag Saleor API Docker Image
         run: |
           cd saleor-api
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}" ./saleor-api/Dockerfile .
+          docker buildx build -t "${{ secrets.DOCKER_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile .
       - name: Build and Tag Saleor Dashboard Docker Image
         run: |
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}" ./saleor-dashboard/Dockerfile .
+          cd saleor-dashboard
+          docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile .
       - name: Start Saleor API & Dashboard Containers
         run: |
           docker run -d -p 8000:8000 --name saleor-api "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"

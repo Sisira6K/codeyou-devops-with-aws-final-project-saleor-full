@@ -81,6 +81,10 @@ jobs:
       #       echo "Saleor Dashboard is ready!"
       - name: Trivy Scan Saleor API
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api || true
+      
+      - name: List Docker Images
+        run: docker images
+      
       - name: push Saleor API Docker Image
         run: |
           docker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"

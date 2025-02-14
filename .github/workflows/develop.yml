@@ -6,15 +6,6 @@ on:
   pull_request:
     branches: [ develop ]
   workflow_dispatch:
-
-env:
-  DOCKER_IMAGE_API: ${{ secrets.DOCKERHUB_USERNAME }}/saleor-api
-  DOCKER_IMAGE_DASHBOARD: ${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard
-  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-  DOCKERHUB_TAG: develop
-  DOCKERHUB_REPO: saleor
-  
   
 jobs:
   check-and-lint:
@@ -47,41 +38,32 @@ jobs:
 
   build-and-deploy:
     name: Build and Deploy
-    runs-on: ubuntu-latest
     needs: check-and-lint
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_REPO: saleor
+      DOCKERHUB_TAG: develop
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Install Docker Compose
+
+      - name: Build and Tag Saleor API Docker Image
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+          cd saleor-api
+          docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile .
+      - name: Build and Tag Saleor Dashboard Docker Image
+        run: |
+          cd saleor-dashboard
+          docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile .
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - name: Debug Docker Username
-        run: echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}"
-      
-      - name: Build and Push Saleor API Docker Image
-        run: docker buildx build --push -t "${{ secrets.DOCKER_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" saleor-api/
-
-      #- name: Build and Tag Saleor API Docker Image
-       # run: |
-        #  cd saleor-api
-         # docker buildx build -t "${{ secrets.DOCKER_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile .
-      #- name: Build and Tag Saleor Dashboard Docker Image
-      #  run: |
-       #   cd saleor-dashboard
-       #   docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile .
-      - name: Start Saleor API & Dashboard Containers
-        run: |
-          docker run -d -p 8000:8000 --name saleor-api "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
-          docker run -d -p 9000:80 --name salaeor-dashboard "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
+  
       - name: Check Saleor API Health
         run: |
           while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
@@ -103,9 +85,3 @@ jobs:
         run: |
           ddocker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
           docker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
-  
-      - name: Stop and Remove Containers
-        run: |
-          docker stop saleor-api saleor-dashboard
-          docker rm saleor-api saleor-dashboard
-         

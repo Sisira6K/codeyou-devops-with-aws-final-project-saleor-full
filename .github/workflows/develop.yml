@@ -71,7 +71,7 @@ jobs:
                 echo "Waiting for Saleor API..."
                 sleep 5
               done
-              echo "Saleor API is healthy!
+              echo "Saleor API is healthy!"
   
       # - name: Check Saleor Dashboard Health
       #   run: |

@@ -1,51 +1,5 @@
 #version: '3.8'
 services:
-  api:
-    image: saleor-api
-    build: 
-      context: ./saleor-api
-      dockerfile: ./Dockerfile
-    ports:
-    - "8000:8000"
-    depends_on:
-      - db
-      - redis
-      - jaeger
-    volumes:
-      - saleor-media:/app/media
-    environment:
-      ALLOWED_HOSTS: "localhost, api, dashboard"
-      DATABASE_URL: "postgresql://saleor:saleor@db:5432/saleor"
-      JAEGER_AGENT_HOST: "http://jaeger-agent:4317"
-      REDIS_URL: "redis://redis:6379/0"
-      DASHBOARD_URL: "http://localhost:9000"
-      #- STATIC_URL: "/static/"
-      #- OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-  dashboard:
-    image: saleor-dashboard
-    build: 
-      context: ./saleor-dashboard
-      dockerfile: ./Dockerfile
-    ports:
-    - "9000:9000"
-    depends_on:
-      - api
-    environment:
-      API_URI: "http://api:8000/graphql/"
-    networks:
-      - saleor-backend-tier
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   db:
     image: postgres:15-alpine 
     ports:
@@ -111,6 +65,52 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  api:
+    image: saleor-api
+    build: 
+      context: ./saleor-api
+      dockerfile: ./Dockerfile
+    ports:
+    - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - jaeger
+    volumes:
+      - saleor-media:/app/
+    environment:
+      ALLOWED_HOSTS: "localhost, api, dashboard"
+      DATABASE_URL: "postgres://saleor:saleor@db:5432/saleor"
+      JAEGER_AGENT_HOST: "http://jaeger-agent:4317"
+      REDIS_URL: "redis://redis:6379/0"
+      DASHBOARD_URL: "http://localhost:9000"
+    networks:
+      - saleor-backend-tier
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  dashboard:
+    image: saleor-dashboard
+    build: 
+      context: ./saleor-dashboard
+      dockerfile: ./Dockerfile
+    ports:
+    - "9000:80"
+    depends_on:
+      - api
+    environment:
+      API_URI: "http://api:8000/graphql/"
+    networks:
+      - saleor-backend-tier
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   saleor-media:
   saleor-db:

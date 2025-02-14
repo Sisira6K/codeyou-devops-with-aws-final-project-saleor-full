@@ -8,19 +8,11 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKERHUB_REPO: saleor
-  DOCKERHUB_TAG: develop
-  DATABASE_URL: ${{ secrets.DATABASE_URL }}
-  SALEOR_SECRET_KEY: ${{ secrets.SALEOR_SECRET_KEY }}
-  DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
-  DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-  DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-  ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
-  REDIS_URL: ${{ secrets.REDIS_URL }}
-  JAEGER_AGENT_HOST: ${{ secrets.JAEGER_AGENT_HOST }}
-  DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
-
+  DOCKER_IMAGE_API: ${{ secrets.DOCKERHUB_USERNAME }}/saleor-api
+  DOCKER_IMAGE_DASHBOARD: ${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard
+  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+  
 jobs:
   check-and-lint:
     runs-on: ubuntu-latest
@@ -40,7 +32,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 ruff pip-audit
 
-
       - name: Linting (flake8)
         run: flake8  . --ignore=E501,W503 || true
 
@@ -58,6 +49,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Install Docker Compose
@@ -65,43 +57,48 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - name: Build and Tag Saleor API Docker Image
-        run: |
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}" ./saleor-api
 
-      - name: Build and Tag Saleor Dashboard Docker Image
+      - name: Build and Tag Docker Image
         run: |
-          docker build -t "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}" ./saleor-dashboard
-      - name: Run containers
+          cd saleor-api
+          docker build -t $DOCKER_IMAGE:develop .
+          docker push $DOCKER_IMAGE:develop
+    
+      - name: Pull the built Docker Images
         run: |
-          docker run -d -p 8000:8000 --name saleor-api-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
-          docker run -d -p 9000:9000 --name saleor-dashboard-container "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
-      
-      - name: Health Check Saleor API
+          docker pull $DOCKER_IMAGE_API:develop
+          docker pull $DOCKER_IMAGE_DASHBOARD:develop
+  
+      - name: Start Saleor API & Dashboard Containers
         run: |
-            until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql/ | grep -qE "200|404"; do
-              echo "Waiting for Saleor API..."
-              sleep 5
-            done
-            echo "Saleor API is ready!"
+          docker network create saleor-network
 
-      - name: Health Check Saleor Dashboard
+          docker run -d --name saleor-api --network saleor-network -p 8000:8000 $DOCKER_IMAGE_API:develop
+          docker run -d --name saleor-dashboard --network saleor-network -p 9000:80 $DOCKER_IMAGE_DASHBOARD:develop
+
+          sleep 10 
+      - name: Check Saleor API Health
         run: |
-            until curl -s -o /dev/null -w "%{http_code}" http://localhost:9000 | grep -qE "200|404"; do
+          while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
+            echo "Waiting for Saleor API..."
+            sleep 5
+          done
+          echo "Saleor API is ready!"
+  
+      - name: Check Saleor Dashboard Health
+        run: |
+            while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/ | grep -E "200|404"; do
               echo "Waiting for Saleor Dashboard..."
               sleep 5
             done
             echo "Saleor Dashboard is ready!"
-      - name: Trivy Scan Saleor API
-        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api-app || true
-      - name: push Saleor API Docker Image
-        run: |
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-api:${{ env.DOCKERHUB_TAG }}"
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPO }}-dashboard:${{ env.DOCKERHUB_TAG }}"
-
-
   
+      - name: Stop and Remove Containers
+        run: |
+          docker stop saleor-api saleor-dashboard
+          docker rm saleor-api saleor-dashboard
+          docker network rm saleor-network

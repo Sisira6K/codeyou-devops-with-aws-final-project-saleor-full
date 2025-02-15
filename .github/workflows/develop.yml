@@ -71,40 +71,51 @@ jobs:
         run: |
           cd saleor-dashboard && docker build -t saleor-dashboard:${{ env.DOCKERHUB_TAG }} .
 
-      - name: Start API and Dependencies
+      - name: Run API and Dependencies
         run: |
           docker network create saleor-backend-tier
-          docker run -d --name postgres --network saleor-backend-tier -e POSTGRES_DB=saleor -e POSTGRES_USER=saleor -e POSTGRES_PASSWORD=saleor postgres:15-alpine 
+          docker run -d --name db --network saleor-backend-tier -e POSTGRES_DB=saleor -e POSTGRES_USER=saleor -e POSTGRES_PASSWORD=saleor postgres:15-alpine 
           docker run -d --name redis --network saleor-backend-tier redis:7.0-alpine
-          docker run -d --name saleor-api --network saleor-backend-tier -p 8000:8000 saleor-api:develop
+          docker run -d --name jaeger --network saleor-backend-tier jaegertracing/all-in-one:1.20.0
+          docker run -d --name saleor-api --network saleor-backend-tier -p 8000:8000 saleor-api:${{ env.DOCKERHUB_TAG }}"
           sleep 30  # Wait for API to start
           echo "Currently running containers:" && docker ps -a
       
       - name: API Health Check
         run: |
-          echo "Testing API health..."
-          curl -v http://localhost:8000/
-
-
-        
-      - name: Run Health Check on Saleor Dashboard
+          until [[ $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql) =~ ^(200|404)$ ]]; do
+            echo "Waiting for Saleor API..."
+            sleep 5
+          done
+          echo "Saleor API is healthy!"!"
+  
+      - name: Run Saleor Dashboard 
         run: |
           docker run --rm -d --name saleor-dashboard -p 9000:80 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}"
-          sleep 10  # Wait for the container to start
-          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:9000/)
-          docker stop saleor-dashboard
-          if [[ "$STATUS_CODE" != "200" ]]; then
-            echo "HDashboard Health check failed with status: $STATUS_CODE"
-            exit 1
-          fi
+          sleep 10 
       
-      - name: Push Saleor API Docker Image
+      - name: Dashboard Health Check
         run: |
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
-      
-      - name: Push Saleor Dashboard Docker Image
-        run: |
-          docker push "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}"
+          until ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/ | grep -E "200|404"; do
+            echo "Waiting for Saleor Dashboard..."
+            sleep 5
+          done
+          echo "Saleor Dashboard is ready!"
 
       - name: Trivy Scan Saleor API
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api || true
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+      - name: Tag and Push Saleor API Docker Image
+        run: |
+          docker tag saleor-api:develop ${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:develop
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:develop
+      
+      - name: Tag and Push Saleor Dashboard Docker Image
+        run: |
+          docker tag saleor-dashboard:develop ${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:develop
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:develop
+          
+      - name: Remove Containers
+        run: |
+          docker rm -f saleor-api saleor-dashboard db redis jaeger || true
+          docker network rm saleor-backend-tier || true

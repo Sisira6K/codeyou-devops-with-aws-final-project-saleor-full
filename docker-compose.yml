@@ -61,10 +61,10 @@ services:
       - saleor-backend-tier
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8025"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      # test: ["CMD", "curl", "-f", "http://localhost:8025"]
+      # interval: 30s
+      # timeout: 10s
+      # retries: 3
   api:
     image: saleor-api
     build: 

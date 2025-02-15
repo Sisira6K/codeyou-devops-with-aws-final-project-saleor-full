@@ -37,7 +37,7 @@ jobs:
           done
           echo "Saleor API is healthy!"
       - name: Stop Docker Compose
-        run: docker-compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down
   
   build-and-deploy:
     name: Build and Deploy

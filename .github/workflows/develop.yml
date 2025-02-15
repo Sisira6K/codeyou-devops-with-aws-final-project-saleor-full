@@ -76,7 +76,7 @@ jobs:
       - name: API Health Check
         run: |
           echo "Testing API health..."
-          curl -v http://localhost:8000/health
+          curl -v http://localhost:8000/
 
 
         

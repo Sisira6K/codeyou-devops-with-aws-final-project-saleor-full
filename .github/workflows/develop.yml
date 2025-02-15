@@ -40,7 +40,14 @@ jobs:
     name: Build and Deploy
     needs: check-and-lint
     runs-on: ubuntu-latest
-    env:
+    env: 
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+      DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
+      JAEGER_AGENT_HOST: ${{ secrets.JAEGER_AGENT_HOST }}
+      DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+      DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+      DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
       DOCKERHUB_REPO: saleor
       DOCKERHUB_TAG: develop
     steps:
@@ -58,18 +65,18 @@ jobs:
 
       - name: Build API Image
         run: |
-          cd saleor-api && docker build -t saleor-api:develop .
+          cd saleor-api && docker build -t saleor-api:${{ env.DOCKERHUB_TAG }} .
         
       - name: Build Dashboard Image
         run: |
-          cd saleor-dashboard && docker build -t saleor-dashboard:develop .
+          cd saleor-dashboard && docker build -t saleor-dashboard:${{ env.DOCKERHUB_TAG }} .
 
       - name: Start API and Dependencies
         run: |
-          docker network create saleor-network
-          docker run -d --name postgres --network saleor-network -e POSTGRES_DB=saleor -e POSTGRES_USER=saleor -e POSTGRES_PASSWORD=saleor postgres:13
-          docker run -d --name redis --network saleor-network redis:6.2
-          docker run -d --name saleor-api --network saleor-network -p 8000:8000 saleor-api:develop
+          docker network create saleor-backend-tier
+          docker run -d --name postgres --network saleor-backend-tier -e POSTGRES_DB=saleor -e POSTGRES_USER=saleor -e POSTGRES_PASSWORD=saleor postgres:15-alpine 
+          docker run -d --name redis --network saleor-backend-tier redis:7.0-alpine
+          docker run -d --name saleor-api --network saleor-backend-tier -p 8000:8000 saleor-api:develop
           sleep 30  # Wait for API to start
           echo "Currently running containers:" && docker ps -a
       

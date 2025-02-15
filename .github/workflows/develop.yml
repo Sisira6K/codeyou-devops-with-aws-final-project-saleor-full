@@ -56,16 +56,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }} 
 
-      - name: Build and Tag Saleor API Docker Image
+      - name: Build API Image
         run: |
-          docker buildx build --load -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile saleor-api
-      - name: Pull Saleor API Image
-        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:develop
+          cd saleor-api && docker build -t saleor-api:develop .
         
-      - name: Build and Tag Saleor Dashboard Docker Image
+      - name: Build Dashboard Image
         run: |
-          docker buildx build --load -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
-        
+          cd saleor-dashboard && docker build -t saleor-dashboard:develop .
+
       - name: Start API and Dependencies
         run: |
           docker network create saleor-network

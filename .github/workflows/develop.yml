@@ -58,27 +58,40 @@ jobs:
 
       - name: Build and Tag Saleor API Docker Image
         run: |
-          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile saleor-api
+          docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile saleor-api
       - name: Build and Tag Saleor Dashboard Docker Image
         run: |
-          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
+          docker buildx build -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
         
-      - name: Check Saleor API Health
+      - name: Run Health Check on Saleor API
         run: |
-          docker run -d --name saleor-api -p 8000:8000 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
-          sleep 10  # Give it time to start
-          until curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql | grep -E "200|404"; do
-                echo "Waiting for Saleor API..."
-                sleep 5
-              done
-              echo "Saleor API is healthy!"
-  
-      # - name: Check Saleor Dashboard Health
-      #   run: |
-      #       while ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/ | grep -E "200|404"; do
-      #         echo "Waiting for Saleor Dashboard..."
-      #         sleep 5
-      #       done
-      #       echo "Saleor Dashboard is ready!"
+          docker run --rm -d --name saleor-api -p 8000:8000 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
+          sleep 10  # Wait for the container to start
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8000/health/)
+          docker stop saleor-api
+          if [[ "$STATUS_CODE" != "200" && "$STATUS_CODE" != "404" ]]; then
+            echo "Health check failed with status: $STATUS_CODE"
+            exit 1
+          fi
+        
+      - name: Run Health Check on Saleor Dashboard
+        run: |
+          docker run --rm -d --name saleor-dashboard -p 9000:80 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}"
+          sleep 10  # Wait for the container to start
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:9000/)
+          docker stop saleor-dashboard
+          if [[ "$STATUS_CODE" != "200" && "$STATUS_CODE" != "404" ]]; then
+            echo "Health check failed with status: $STATUS_CODE"
+            exit 1
+          fi
+      
+      - name: Push Saleor API Docker Image
+        run: |
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
+      
+      - name: Push Saleor Dashboard Docker Image
+        run: |
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}"
+
       - name: Trivy Scan Saleor API
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --no-progress saleor-api || true

@@ -65,12 +65,12 @@ jobs:
         
       - name: Run Health Check on Saleor API
         run: |
-          docker run --rm -d --name saleor-api -p 8000:8000 "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
+          docker run --rm -d --name saleor-api --network=host "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
           sleep 10  # Wait for the container to start
           STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8000/health/)
           docker stop saleor-api
-          if [[ "$STATUS_CODE" != "200" && "$STATUS_CODE" != "404" ]]; then
-            echo "Health check failed with status: $STATUS_CODE"
+          if [[ "$STATUS_CODE" != "200" ]]; then
+            echo "API Health check failed with status: $STATUS_CODE"
             exit 1
           fi
         
@@ -80,8 +80,8 @@ jobs:
           sleep 10  # Wait for the container to start
           STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:9000/)
           docker stop saleor-dashboard
-          if [[ "$STATUS_CODE" != "200" && "$STATUS_CODE" != "404" ]]; then
-            echo "Health check failed with status: $STATUS_CODE"
+          if [[ "$STATUS_CODE" != "200" ]]; then
+            echo "HDashboard Health check failed with status: $STATUS_CODE"
             exit 1
           fi
       

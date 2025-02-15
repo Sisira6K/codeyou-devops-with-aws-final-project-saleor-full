@@ -83,11 +83,11 @@ jobs:
       
       - name: API Health Check
         run: |
-          until [[ $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/graphql) =~ ^(200|404)$ ]]; do
+          until STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health) && echo "Status: $STATUS" && echo $STATUS | grep -E "200|404"; do
             echo "Waiting for Saleor API..."
             sleep 5
           done
-          echo "Saleor API is healthy!"
+          echo "Saleor API is ready!"
   
       - name: Run Saleor Dashboard 
         run: |

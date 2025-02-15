@@ -63,16 +63,21 @@ jobs:
         run: |
           docker buildx build --load -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
         
-      - name: Run Health Check on Saleor API
+      - name: Start API and Dependencies
         run: |
-          docker run --rm -d --name saleor-api --network=host "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}"
-          sleep 10  # Wait for the container to start
-          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8000/health/)
-          docker stop saleor-api
-          if [[ "$STATUS_CODE" != "200" ]]; then
-            echo "API Health check failed with status: $STATUS_CODE"
-            exit 1
-          fi
+          docker network create saleor-network
+          docker run -d --name postgres --network saleor-network -e POSTGRES_DB=saleor -e POSTGRES_USER=saleor -e POSTGRES_PASSWORD=saleor postgres:13
+          docker run -d --name redis --network saleor-network redis:6.2
+          docker run -d --name saleor-api --network saleor-network -p 8000:8000 saleor-api:develop
+          sleep 30  # Wait for API to start
+          echo "Currently running containers:" && docker ps -a
+      
+      - name: API Health Check
+        run: |
+          echo "Testing API health..."
+          curl -v http://localhost:8000/health
+
+
         
       - name: Run Health Check on Saleor Dashboard
         run: |

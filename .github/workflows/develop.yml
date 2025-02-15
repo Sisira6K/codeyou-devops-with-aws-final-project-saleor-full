@@ -96,7 +96,7 @@ jobs:
       
       - name: Dashboard Health Check
         run: |
-          until ! curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/ | grep -E "200|404"; do
+          until STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/) && echo "Status: $STATUS" && echo $STATUS | grep -E "200|404"; do
             echo "Waiting for Saleor Dashboard..."
             sleep 5
           done

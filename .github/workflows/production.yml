@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_REPO: saleor
-      DOCKERHUB_TAG: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,11 +23,11 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}   
       - name: Build and Push Docker Images
         run: |
-          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:${{ env.DOCKERHUB_TAG }}" -f saleor-api/Dockerfile saleor-api
+          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:production" -f saleor-api/Dockerfile saleor-api
           docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-api:latest" -f saleor-api/Dockerfile saleor-api
       - name: Build and Tag Saleor Dashboard Docker Image
         run: |
-          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:${{ env.DOCKERHUB_TAG }}" -f saleor-dashboard/Dockerfile saleor-dashboard
+          docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:production" -f saleor-dashboard/Dockerfile saleor-dashboard
           docker buildx build --push -t "${{ secrets.DOCKERHUB_USERNAME }}/saleor-dashboard:latest" -f saleor-dashboard/Dockerfile saleor-dashboard
         
   
